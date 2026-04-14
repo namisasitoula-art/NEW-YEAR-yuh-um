@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>नया वर्ष २०८२ को शुभकामना!</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      background: #09131f;
+      color: #f8f0e7;
+      position: relative;
+    }
+    canvas {
+      position: absolute;
+      inset: 0;
+      display: block;
+      z-index: 1;
+    }
+    .screen-ui {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .title-box {
+      position: absolute;
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .title-box h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 18px rgba(255, 190, 96, 0.35), 0 0 6px rgba(255, 240, 220, 0.15);
+    }
+    .title-box p {
+      margin: 0.35rem 0 0;
+      font-size: 0.95rem;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: #f7e6d3;
+      opacity: 0.95;
+    }
+    #score-badge {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(16, 20, 40, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      padding: 0.75rem 1rem;
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .tooltip {
+      position: absolute;
+      padding: 0.65rem 0.9rem;
+      background: rgba(11, 16, 34, 0.95);
+      color: #f8f4e8;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+      font-size: 0.92rem;
+      opacity: 0;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      pointer-events: none;
+      z-index: 25;
+      white-space: nowrap;
+    }
+    .tooltip.visible {
+      opacity: 1;
+      transform: translateY(-6px);
+    }
+    .hotspot {
+      position: absolute;
+      pointer-events: auto;
+      background: transparent;
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(9, 13, 24, 0.75);
+      z-index: 30;
+      padding: 1.5rem;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      width: min(520px, 100%);
+      background: rgba(18, 24, 42, 0.98);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 1.65rem;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .modal::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(250, 204, 120, 0.15), transparent 35%);
+      pointer-events: none;
+    }
+    .modal h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.4rem;
+    }
+    .modal .emoji {
+      font-size: 2rem;
+      display: inline-block;
+      margin-right: 0.6rem;
+      transform: translateY(2px);
+    }
+    .modal p {
+      margin: 0.8rem 0 1.4rem;
+      line-height: 1.55;
+      color: #dee2ff;
+    }
+    .modal input {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+      color: #faf8f2;
+      padding: 0.9rem 1rem;
+      font-size: 1rem;
+      outline: none;
+      margin-bottom: 0.9rem;
+    }
+    .modal input::placeholder {
+      color: rgba(255, 255, 255, 0.55);
+    }
+    .modal .buttons {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .modal button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.9rem 1.25rem;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+    }
+    .modal button:hover { transform: translateY(-1px); }
+    .modal button:focus { outline: 2px solid rgba(255, 205, 90, 0.6); }
+    .btn-submit { background: #f6c55d; color: #111; }
+    .btn-skip { background: rgba(255, 255, 255, 0.1); color: #f5ede8; }
+    .feedback {
+      min-height: 1.15rem;
+      margin: 0.65rem 0 0;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+    .feedback.correct { color: #6df08d; }
+    .feedback.wrong { color: #ff8a8c; }
+    .petal {
+      position: absolute;
+      top: -50px;
+      width: 14px;
+      height: 28px;
+      border-radius: 60% 40% 55% 45%;
+      opacity: 0.95;
+      transform-origin: center;
+      pointer-events: none;
+      z-index: 5;
+      animation-name: fall;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+    @keyframes fall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.9; }
+      50% { opacity: 0.95; }
+      100% { transform: translateY(110vh) rotate(360deg); opacity: 0.1; }
+    }
+    .sparkle {
+      position: absolute;
+      pointer-events: none;
+      font-size: 1.4rem;
+      opacity: 0;
+      transform: scale(0.5) translateY(0);
+      animation: sparklePop 1s ease-out forwards;
+      z-index: 40;
+    }
+    @keyframes sparklePop {
+      0% { opacity: 0; transform: scale(0.4) translateY(0); }
+      30% { opacity: 1; transform: scale(1.2) translateY(-12px); }
+      100% { opacity: 0; transform: scale(1.6) translateY(-60px); }
+    }
+    .modal-note {
+      margin-top: 1rem;
+      padding: 0.9rem 1rem;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #dfd6c9;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <div class="screen-ui">
+    <div class="title-box">
+      <h1>नया वर्ष २०८२ को शुभकामना!</h1>
+      <p>NAVA VARSHA KO SHUBHAKAMANA</p>
+    </div>
+    <div id="score-badge">Score: 0</div>
+    <div id="tooltip" class="tooltip"></div>
+  </div>
+  <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal" id="modal">
+      <h2><span class="emoji" id="modal-emoji">🌼</span><span id="modal-name">Puzzle</span></h2>
+      <p id="modal-question">Tap a friendly face to begin.</p>
+      <input id="modal-input" type="text" placeholder="Your answer here..." autocomplete="off" />
+      <div class="buttons">
+        <button class="btn-submit" id="submit-btn">Submit</button>
+        <button class="btn-skip" id="skip-btn">Skip</button>
+      </div>
+      <div id="modal-feedback" class="feedback"></div>
+      <div class="modal-note">Click outside the box or press Escape to close.</div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
+    const tooltip = document.getElementById('tooltip');
+    const scoreBadge = document.getElementById('score-badge');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalName = document.getElementById('modal-name');
+    const modalQuestion = document.getElementById('modal-question');
+    const modalInput = document.getElementById('modal-input');
+    const modalFeedback = document.getElementById('modal-feedback');
+    const submitBtn = document.getElementById('submit-btn');
+    const skipBtn = document.getElementById('skip-btn');
+
+    const sceneContainer = document.body;
+    let currentHotspot = null;
+    let score = 0;
+
+    const hotspots = [
+      {
+        id: 'elderly-woman', type: 'person', x: 11, y: 51, w: 12, h: 18,
+        name: 'Elderly woman', question: 'What is chiura?', answers: ['chiura', 'beaten', 'pounded', 'rice'], hover: 'Elderly aunt offering a riddle about chiura.', emoji: '👵', hint: 'It is a flattened rice snack.', solved: false
+      },
+      {
+        id: 'young-man', type: 'person', x: 24, y: 52, w: 12, h: 18,
+        name: 'Young man', question: "Nepal's national flower?", answers: ['rhododendron', 'lali gurans', 'lali', 'gurans'], hover: 'A cheerful youth asking about the national flower.', emoji: '🧑', hint: 'It blooms red on the hills of Nepal.', solved: false
+      },
+      {
+        id: 'old-man', type: 'person', x: 44, y: 54, w: 12, h: 18,
+        name: 'Old man', question: 'Traditional Nepali cap?', answers: ['dhaka topi', 'dhaka', 'topi'], hover: 'A wise elder asks about the cap of Nepal.', emoji: '👴', hint: 'It is woven in bright patterns and worn proudly.', solved: false
+      },
+      {
+        id: 'young-woman', type: 'person', x: 61, y: 50, w: 12, h: 18,
+        name: 'Young woman', question: 'Flower necklace placed on guests?', answers: ['garland', 'mala'], hover: 'A festive woman asks about a welcome flower necklace.', emoji: '👩', hint: 'It is called mala in Nepali.', solved: false
+      },
+      {
+        id: 'stone-hut-1', type: 'hut', x: 16, y: 63, w: 14, h: 16,
+        name: 'Stone hut 1', question: 'What calendar does Nepal follow?', answers: ['bikram sambat', 'bikram', 'sambat'], hover: 'A cozy stone hut holds a calendar riddle.', emoji: '🏚️', hint: 'It begins with B and is about 57 years ahead of Gregorian.', solved: false
+      },
+      {
+        id: 'stone-hut-2', type: 'hut', x: 47, y: 62, w: 14, h: 16,
+        name: 'Stone hut 2', question: "World's highest peak in Nepal?", answers: ['everest', 'sagarmatha'], hover: 'A second hut asks about the highest mountain.', emoji: '⛰️', hint: 'It is called Everest in English and Sagarmatha in Nepali.', solved: false
+      },
+      {
+        id: 'stone-hut-3', type: 'hut', x: 74, y: 62, w: 14, h: 16,
+        name: 'Stone hut 3', question: 'What brings friends and family together on New Year?', answers: ['celebration', 'festival', 'love', 'joy', 'together'], hover: 'A third hut asks about the spirit of the festival.', emoji: '🏡', hint: 'It is a feeling shared by everyone during Nava Varsha.', solved: false
+      }
+    ];
+
+    function shadeHex(hex, amount) {
+      const normalized = hex.replace('#', '');
+      const num = parseInt(normalized, 16);
+      const r = Math.min(255, Math.max(0, ((num >> 16) & 255) + amount));
+      const g = Math.min(255, Math.max(0, ((num >> 8) & 255) + amount));
+      const b = Math.min(255, Math.max(0, (num & 255) + amount));
+      return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
+    }
+
+    function makeHotspots() {
+      hotspots.forEach(hotspot => {
+        const div = document.createElement('div');
+        div.className = 'hotspot';
+        div.dataset.id = hotspot.id;
+        div.dataset.hover = hotspot.hover;
+        div.addEventListener('mouseover', showTooltip);
+        div.addEventListener('mouseout', hideTooltip);
+        div.addEventListener('mousemove', moveTooltip);
+        div.addEventListener('click', event => {
+          event.stopPropagation();
+          openModal(hotspot);
+        });
+        document.body.appendChild(div);
+        hotspot.el = div;
+      });
+      positionHotspots();
+    }
+
+    function positionHotspots() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      hotspots.forEach(hotspot => {
+        if (!hotspot.el) return;
+        hotspot.el.style.left = `calc(${hotspot.x}% - ${hotspot.w / 2}vw)`;
+        hotspot.el.style.top = `calc(${hotspot.y}% - ${hotspot.h / 2}vh)`;
+        hotspot.el.style.width = `${hotspot.w}vw`;
+        hotspot.el.style.height = `${hotspot.h}vh`;
+      });
+    }
+
+    function showTooltip(event) {
+      const text = event.currentTarget.dataset.hover;
+      tooltip.textContent = text;
+      tooltip.classList.add('visible');
+      moveTooltip(event);
+    }
+
+    function moveTooltip(event) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      tooltip.style.left = `${rect.left + rect.width / 2}px`;
+      tooltip.style.top = `${rect.top - 12}px`;
+    }
+
+    function hideTooltip() {
+      tooltip.classList.remove('visible');
+    }
+
+    function openModal(hotspot) {
+      currentHotspot = hotspot;
+      modalName.textContent = hotspot.name;
+      modalQuestion.textContent = hotspot.question;
+      modalInput.value = '';
+      modalFeedback.textContent = hotspot.solved ? 'This puzzle is already solved. शाबास!' : '';
+      modalFeedback.className = 'feedback' + (hotspot.solved ? ' correct' : '');
+      modalOverlay.classList.add('active');
+      modalInput.disabled = hotspot.solved;
+      modalInput.focus();
+      submitBtn.disabled = hotspot.solved;
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('active');
+      modalFeedback.textContent = '';
+      currentHotspot = null;
+    }
+
+    function updateScore() {
+      scoreBadge.textContent = `Score: ${score}`;
+    }
+
+    function showFeedback(text, state) {
+      modalFeedback.textContent = text;
+      modalFeedback.className = `feedback ${state}`;
+    }
+
+    function normalizeText(text) {
+      return text.toLowerCase().replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').trim();
+    }
+
+    function submitAnswer() {
+      if (!currentHotspot || currentHotspot.solved) return;
+      const answer = normalizeText(modalInput.value);
+      if (!answer) { showFeedback('Please type an answer before submitting.', 'wrong'); return; }
+      const correct = currentHotspot.answers.some(key => answer.includes(key));
+      if (correct) {
+        currentHotspot.solved = true;
+        score += 10;
+        updateScore();
+        showFeedback('Correct! +10 points! शाबास!', 'correct');
+        spawnSparkles();
+        setTimeout(closeModal, 1500);
+      } else {
+        showFeedback(currentHotspot.hint, 'wrong');
+      }
+    }
+
+    function spawnSparkles() {
+      for (let i = 0; i < 5; i += 1) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        sparkle.textContent = ['✨', '🌟', '💫', '🌼'][i % 4];
+        sparkle.style.left = `${50 + (Math.random() - 0.5) * 24}%`;
+        sparkle.style.top = `${45 + (Math.random() - 0.5) * 16}%`;
+        sparkle.style.animationDuration = `${0.85 + Math.random() * 0.4}s`;
+        document.body.appendChild(sparkle);
+        sparkle.addEventListener('animationend', () => sparkle.remove());
+      }
+    }
+
+    function setupPetals() {
+      const colors = ['#f4a4d6', '#ffd07b', '#ff8473', '#ffdbe2', '#e8f7a5'];
+      for (let i = 0; i < 20; i += 1) {
+        const petal = document.createElement('div');
+        petal.className = 'petal';
+        const size = 10 + Math.random() * 24;
+        petal.style.width = `${size}px`;
+        petal.style.height = `${size * 2.2}px`;
+        petal.style.left = `${Math.random() * 100}%`;
+        petal.style.background = colors[Math.floor(Math.random() * colors.length)];
+        petal.style.opacity = 0.65 + Math.random() * 0.25;
+        const duration = 10 + Math.random() * 10;
+        petal.style.animationDuration = `${duration}s`;
+        petal.style.animationDelay = `${Math.random() * -duration}s`;
+        petal.style.transform = `rotate(${Math.random() * 360}deg)`;
+        document.body.appendChild(petal);
+      }
+    }
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawScene();
+      positionHotspots();
+    }
+
+    function drawScene() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      ctx.clearRect(0, 0, w, h);
+      drawSky(w, h);
+      drawSun(w, h);
+      drawStars(w, h);
+      drawClouds(w, h);
+      drawMountains(w, h);
+      drawHaze(w, h);
+      drawTrees(w, h);
+      drawTerraces(w, h);
+      drawHuts(w, h);
+      drawPeople(w, h);
+      drawForegroundGrass(w, h);
+      drawFlowers(w, h);
+    }
+
+    function drawSky(w, h) {
+      const sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, '#061026');
+      sky.addColorStop(0.35, '#1a2c50');
+      sky.addColorStop(0.72, '#c88c4c');
+      sky.addColorStop(1, '#b6d8f4');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    function drawSun(w, h) {
+      const x = w * 0.5;
+      const y = h * 0.28;
+      const sunRadius = Math.min(w, h) * 0.08;
+      const halo = ctx.createRadialGradient(x, y, sunRadius * 0.1, x, y, sunRadius * 1.4);
+      halo.addColorStop(0, 'rgba(255, 234, 171, 0.95)');
+      halo.addColorStop(0.4, 'rgba(255, 196, 86, 0.5)');
+      halo.addColorStop(1, 'rgba(255, 176, 80, 0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(x, y, sunRadius * 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffe9b2';
+      ctx.beginPath();
+      ctx.arc(x, y, sunRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawStars(w, h) {
+      const stars = [
+        {x: 0.14, y: 0.12, r: 2},
+        {x: 0.22, y: 0.08, r: 2.5},
+        {x: 0.38, y: 0.1, r: 1.8},
+        {x: 0.55, y: 0.06, r: 2.2},
+        {x: 0.78, y: 0.14, r: 1.9}
+      ];
+      ctx.fillStyle = '#fff';
+      stars.forEach(star => {
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        ctx.arc(w * star.x, h * star.y, star.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function drawClouds(w, h) {
+      const clouds = [
+        {x: 0.18, y: 0.22, scale: 1.4},
+        {x: 0.42, y: 0.18, scale: 1.2},
+        {x: 0.72, y: 0.24, scale: 1.3}
+      ];
+      clouds.forEach(cloud => {
+        ctx.fillStyle = 'rgba(255,255,255,0.78)';
+        ctx.beginPath();
+        ctx.ellipse(w * cloud.x, h * cloud.y, 90 * cloud.scale, 30 * cloud.scale, 0, 0, Math.PI * 2);
+        ctx.ellipse(w * (cloud.x - 0.04), h * (cloud.y + 0.01), 72 * cloud.scale, 28 * cloud.scale, 0, 0, Math.PI * 2);
+        ctx.ellipse(w * (cloud.x + 0.05), h * (cloud.y + 0.02), 80 * cloud.scale, 32 * cloud.scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawMountains(w, h) {
+      const mountainLayers = [
+        {points: [[0,0.6],[0.15,0.42],[0.32,0.58],[0.5,0.4],[0.66,0.55],[0.85,0.38],[1,0.55]], color: '#12203a', cap: '#e8e9ee'},
+        {points: [[0,0.65],[0.12,0.5],[0.28,0.63],[0.45,0.47],[0.58,0.62],[0.74,0.49],[0.92,0.64],[1,0.58]], color: '#1c3153', cap: '#f0f2f4'},
+        {points: [[0,0.7],[0.14,0.58],[0.3,0.68],[0.43,0.56],[0.58,0.69],[0.72,0.59],[0.9,0.7],[1,0.67]], color: '#2f4771', cap: '#fafcfe'},
+        {points: [[0,0.78],[0.11,0.65],[0.25,0.76],[0.4,0.62],[0.55,0.78],[0.7,0.68],[0.85,0.77],[1,0.74]], color: '#4a6a90', cap: '#f7f8fb'},
+        {points: [[0,0.85],[0.15,0.7],[0.28,0.82],[0.42,0.7],[0.55,0.84],[0.68,0.74],[0.8,0.84],[1,0.79]], color: '#6b8cb0', cap: '#f9fbfc'}
+      ];
+      mountainLayers.forEach((layer, index) => {
+        ctx.fillStyle = layer.color;
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        layer.points.forEach(([px, py], i) => {
+          ctx.lineTo(px * w, py * h);
+        });
+        ctx.lineTo(w, h);
+        ctx.closePath();
+        ctx.fill();
+        layer.points.forEach(([px, py], idx) => {
+          if (idx % 2 === 0) {
+            const peakX = px * w;
+            const peakY = py * h;
+            ctx.fillStyle = layer.cap;
+            ctx.beginPath();
+            ctx.moveTo(peakX - 35, peakY + 20);
+            ctx.lineTo(peakX, peakY - 22);
+            ctx.lineTo(peakX + 35, peakY + 20);
+            ctx.closePath();
+            ctx.fill();
+          }
+        });
+      });
+    }
+
+    function drawHaze(w, h) {
+      const gradient = ctx.createLinearGradient(0, h * 0.55, 0, h);
+      gradient.addColorStop(0, 'rgba(235, 223, 207, 0.12)');
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, h * 0.55, w, h * 0.45);
+    }
+
+    function drawTrees(w, h) {
+      const treeX = [0.1, 0.18, 0.28, 0.38, 0.48, 0.57, 0.67, 0.78, 0.87];
+      treeX.forEach((tx, index) => {
+        const height = h * (0.12 + Math.random() * 0.1);
+        const baseY = h * 0.72 + (index % 2) * 10;
+        const treeColor = index % 2 === 0 ? '#132a20' : '#1c372a';
+        ctx.fillStyle = treeColor;
+        ctx.beginPath();
+        ctx.moveTo(w * tx, baseY);
+        ctx.quadraticCurveTo(w * (tx - 0.01), baseY - height * 0.3, w * (tx - 0.03), baseY - height);
+        ctx.quadraticCurveTo(w * tx, baseY - height * 0.72, w * (tx + 0.03), baseY - height * 0.96);
+        ctx.quadraticCurveTo(w * (tx + 0.05), baseY - height * 0.7, w * (tx + 0.02), baseY - height * 0.4);
+        ctx.quadraticCurveTo(w * (tx + 0.08), baseY - height * 0.5, w * tx, baseY);
+        ctx.fill();
+      });
+    }
+
+    function drawTerraces(w, h) {
+      const baseY = h * 0.75;
+      const terraceColors = ['#3e7b36', '#4d8d42', '#5aa656', '#6fc36a'];
+      for (let i = 0; i < 5; i += 1) {
+        const top = baseY + i * 28;
+        const bottom = top + 34;
+        const left = 0.05 * w + i * 22;
+        const right = w - 0.05 * w - i * 80;
+        ctx.fillStyle = shadeHex(terraceColors[i % terraceColors.length], i * 8);
+        ctx.beginPath();
+        ctx.moveTo(left, top);
+        ctx.lineTo(right, top);
+        ctx.lineTo(right - 16, bottom);
+        ctx.lineTo(left + 32, bottom);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    function drawHuts(w, h) {
+      const huts = [
+        {x: 0.18, y: 0.66, wall: '#8d7b67', roof: '#b43c2c'},
+        {x: 0.5, y: 0.65, wall: '#9b8a73', roof: '#7c542f'},
+        {x: 0.82, y: 0.66, wall: '#7c6a5b', roof: '#4c7a46'}
+      ];
+      huts.forEach((hut, index) => {
+        const baseX = w * hut.x;
+        const baseY = h * hut.y;
+        const hutWidth = w * 0.15;
+        const hutHeight = h * 0.14;
+        const wallShadow = shadeHex(hut.wall, -22);
+        const wallLight = shadeHex(hut.wall, 18);
+
+        ctx.fillStyle = hut.wall;
+        ctx.beginPath();
+        ctx.moveTo(baseX - hutWidth * 0.5, baseY);
+        ctx.lineTo(baseX + hutWidth * 0.5, baseY);
+        ctx.lineTo(baseX + hutWidth * 0.42, baseY - hutHeight);
+        ctx.lineTo(baseX - hutWidth * 0.42, baseY - hutHeight);
+        ctx.closePath();
+        ctx.fill();
+
+        const wallGradient = ctx.createLinearGradient(baseX - hutWidth * 0.4, baseY - hutHeight, baseX + hutWidth * 0.4, baseY);
+        wallGradient.addColorStop(0, wallLight);
+        wallGradient.addColorStop(1, wallShadow);
+        ctx.fillStyle = wallGradient;
+        ctx.fill();
+
+        ctx.fillStyle = hut.roof;
+        ctx.beginPath();
+        ctx.moveTo(baseX - hutWidth * 0.55, baseY - hutHeight);
+        ctx.lineTo(baseX, baseY - hutHeight - hutHeight * 0.45);
+        ctx.lineTo(baseX + hutWidth * 0.55, baseY - hutHeight);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = shadeHex(hut.roof, -50);
+        ctx.lineWidth = 2;
+        for (let rail = -2; rail <= 2; rail += 1) {
+          const px = baseX + rail * (hutWidth * 0.14);
+          ctx.beginPath();
+          ctx.moveTo(px, baseY - hutHeight);
+          ctx.lineTo(px + (hutWidth * 0.12), baseY - hutHeight - hutHeight * 0.35);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = '#5a3f2a';
+        const doorW = hutWidth * 0.18;
+        const doorH = hutHeight * 0.45;
+        ctx.fillRect(baseX - doorW / 2, baseY - doorH, doorW, doorH);
+        ctx.fillStyle = '#d8b38c';
+        ctx.fillRect(baseX - doorW / 2 - 6, baseY - doorH, 6, doorH);
+        ctx.fillRect(baseX + doorW / 2, baseY - doorH, 6, doorH);
+
+        ctx.fillStyle = '#4c78b5';
+        const winSize = hutWidth * 0.15;
+        const winY = baseY - hutHeight * 0.65;
+        ctx.fillRect(baseX - hutWidth * 0.3, winY, winSize, winSize * 0.75);
+        ctx.fillRect(baseX + hutWidth * 0.15, winY, winSize, winSize * 0.75);
+        ctx.strokeStyle = '#1c2a46';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(baseX - hutWidth * 0.3, winY + winSize * 0.38);
+        ctx.lineTo(baseX - hutWidth * 0.3 + winSize, winY + winSize * 0.38);
+        ctx.moveTo(baseX - hutWidth * 0.3 + winSize * 0.5, winY);
+        ctx.lineTo(baseX - hutWidth * 0.3 + winSize * 0.5, winY + winSize * 0.75);
+        ctx.moveTo(baseX + hutWidth * 0.15, winY + winSize * 0.38);
+        ctx.lineTo(baseX + hutWidth * 0.15 + winSize, winY + winSize * 0.38);
+        ctx.moveTo(baseX + hutWidth * 0.15 + winSize * 0.5, winY);
+        ctx.lineTo(baseX + hutWidth * 0.15 + winSize * 0.5, winY + winSize * 0.75);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#ffd69a';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(baseX - hutWidth * 0.32, baseY - hutHeight * 0.95);
+        ctx.quadraticCurveTo(baseX, baseY - hutHeight * 0.8, baseX + hutWidth * 0.32, baseY - hutHeight * 0.95);
+        ctx.stroke();
+        const beadColors = ['#ff4b62', '#f9d34e', '#8ad47d', '#ff9b5d'];
+        for (let bead = 0; bead < 7; bead += 1) {
+          const px = baseX - hutWidth * 0.32 + (hutWidth * 0.64) * (bead / 6);
+          const py = baseY - hutHeight * 0.95 + Math.sin(bead / 6 * Math.PI) * 18;
+          ctx.fillStyle = beadColors[bead % beadColors.length];
+          ctx.beginPath();
+          ctx.arc(px, py, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = '#4d3a2b';
+        ctx.fillRect(baseX + hutWidth * 0.38, baseY - hutHeight * 0.95, hutWidth * 0.05, hutHeight * 0.45);
+        ctx.beginPath();
+        ctx.ellipse(baseX + hutWidth * 0.415, baseY - hutHeight * 1.05, hutWidth * 0.03, hutHeight * 0.05, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(245,245,245,0.75)';
+        ctx.beginPath();
+        ctx.ellipse(baseX + hutWidth * 0.43, baseY - hutHeight * 1.15, hutWidth * 0.035, hutHeight * 0.025, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawPeople(w, h) {
+      const people = [
+        {x: 0.13, y: 0.72, body: '#9e3b7a', skin: '#9b6a4b', outfit: '#8a2d73', type: 'woman', hair: '#1b0d1a'},
+        {x: 0.28, y: 0.72, body: '#f2d168', skin: '#8c5b3d', outfit: '#f7d76a', type: 'man', hair: '#1b2234'},
+        {x: 0.45, y: 0.72, body: '#d6cbbf', skin: '#8b6d55', outfit: '#8b5f3a', type: 'elder', hair: '#d9dcde'},
+        {x: 0.62, y: 0.71, body: '#a564c8', skin: '#8f5d43', outfit: '#9d5acd', type: 'woman2', hair: '#0f0e0d'}
+      ];
+      people.forEach(person => {
+        const px = w * person.x;
+        const py = h * person.y;
+        const headRadius = 18;
+        ctx.fillStyle = person.skin;
+        ctx.beginPath();
+        ctx.arc(px, py - 34, headRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = person.hair;
+        ctx.beginPath();
+        ctx.arc(px, py - 42, headRadius * 0.9, Math.PI * 0.2, Math.PI * 0.8);
+        ctx.fill();
+        if (person.type === 'woman') {
+          ctx.fillStyle = '#df6cb0';
+          ctx.beginPath();
+          ctx.moveTo(px - 20, py - 20);
+          ctx.quadraticCurveTo(px - 12, py + 18, px - 4, py + 50);
+          ctx.quadraticCurveTo(px + 24, py + 24, px + 18, py - 16);
+          ctx.closePath();
+          ctx.fill();
+        } else if (person.type === 'man') {
+          ctx.fillStyle = '#f8d750';
+          ctx.beginPath();
+          ctx.moveTo(px - 18, py - 20);
+          ctx.lineTo(px + 18, py - 20);
+          ctx.lineTo(px + 26, py + 30);
+          ctx.lineTo(px - 18, py + 28);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(px - 16, py + 26, 32, 34);
+        } else if (person.type === 'elder') {
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(px - 18, py - 18);
+          ctx.lineTo(px + 18, py - 18);
+          ctx.lineTo(px + 24, py + 36);
+          ctx.lineTo(px - 20, py + 32);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = '#7a5230';
+          ctx.fillRect(px - 18, py + 10, 36, 18);
+        } else {
+          ctx.fillStyle = '#8f5ad1';
+          ctx.beginPath();
+          ctx.moveTo(px - 18, py - 18);
+          ctx.quadraticCurveTo(px - 10, py + 32, px + 4, py + 58);
+          ctx.quadraticCurveTo(px + 28, py + 28, px + 20, py - 16);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.strokeStyle = '#4a2b1f';
+        ctx.lineWidth = 2;
+        if (person.type === 'woman') {
+          ctx.beginPath();
+          ctx.moveTo(px - 12, py - 8);
+          ctx.lineTo(px, py + 22);
+          ctx.lineTo(px + 12, py - 8);
+          ctx.stroke();
+        } else if (person.type === 'man') {
+          ctx.beginPath();
+          ctx.moveTo(px - 6, py + 20);
+          ctx.lineTo(px - 10, py + 38);
+          ctx.moveTo(px + 6, py + 20);
+          ctx.lineTo(px + 10, py + 42);
+          ctx.stroke();
+        } else if (person.type === 'elder') {
+          ctx.beginPath();
+          ctx.moveTo(px - 12, py + 24);
+          ctx.lineTo(px - 28, py + 56);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(px + 6, py + 14);
+          ctx.lineTo(px + 18, py + 48);
+          ctx.stroke();
+        }
+        ctx.fillStyle = '#fcc056';
+        for (let g = 0; g < 8; g += 1) {
+          const angle = g / 8 * Math.PI * 2;
+          ctx.beginPath();
+          ctx.arc(px + Math.cos(angle) * 12, py - 12 + Math.sin(angle) * 8, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        if (person.type === 'woman2') {
+          ctx.fillStyle = '#ff91a5';
+          ctx.beginPath();
+          ctx.arc(px + 22, py + 20, 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#6aa84f';
+          ctx.beginPath();
+          ctx.moveTo(px + 20, py + 12);
+          ctx.lineTo(px + 28, py + 30);
+          ctx.lineTo(px + 16, py + 30);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.fillStyle = '#31251c';
+        ctx.beginPath();
+        ctx.ellipse(px - 8, py - 46, 6, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawForegroundGrass(w, h) {
+      const grassBase = h * 0.86;
+      for (let i = 0; i < 80; i += 1) {
+        const x = Math.random() * w;
+        const y = grassBase + Math.random() * h * 0.08;
+        const height = 30 + Math.random() * 36;
+        ctx.strokeStyle = `rgba(41, 112, 45, ${0.55 + Math.random() * 0.35})`;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(x + (Math.random() - 0.5) * 12, y - height * 0.55, x + (Math.random() - 0.2) * 6, y - height);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#275327';
+      ctx.fillRect(0, grassBase, w, h - grassBase);
+    }
+
+    function drawFlowers(w, h) {
+      const flowerColors = ['#f2413c', '#ffd84c', '#ff8a5c', '#d94ea8'];
+      for (let i = 0; i < 25; i += 1) {
+        const x = Math.random() * w;
+        const y = h * 0.83 + Math.random() * h * 0.13;
+        const radius = 5 + Math.random() * 4;
+        ctx.fillStyle = flowerColors[i % flowerColors.length];
+        ctx.beginPath();
+        for (let petal = 0; petal < 5; petal += 1) {
+          const angle = petal * Math.PI * 2 / 5;
+          const px = x + Math.cos(angle) * radius;
+          const py = y + Math.sin(angle) * radius;
+          ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    modalOverlay.addEventListener('click', event => {
+      if (event.target === modalOverlay) closeModal();
+    });
+    window.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeModal();
+      if (event.key === 'Enter' && modalOverlay.classList.contains('active')) {
+        submitAnswer();
+      }
+    });
+    submitBtn.addEventListener('click', submitAnswer);
+    skipBtn.addEventListener('click', closeModal);
+
+    makeHotspots();
+    setupPetals();
+    resizeCanvas();
+    updateScore();
+  </script>
+</body>
+</html>
